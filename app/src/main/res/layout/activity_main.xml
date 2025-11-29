@@ -20,6 +20,7 @@
         android:hint="例: 003769"
         android:inputType="phone"/>
 
+
     <Switch
         android:id="@+id/switchEnable"
         android:layout_width="wrap_content"

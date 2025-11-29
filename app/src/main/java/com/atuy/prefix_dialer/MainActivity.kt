@@ -1,21 +1,29 @@
 package com.atuy.prefix_dialer
 
+import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Switch
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat.startActivityForResult
-import androidx.core.content.ContextCompat.getSystemService
 
 class MainActivity : AppCompatActivity() {
 
-    companion object {
-        private const val REQUEST_CODE_ROLE = 1
+    // 推奨される新しいActivity Result APIを使用
+    private val roleRequestLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            Toast.makeText(this, "通話転送アプリとして設定されました", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "設定されませんでした", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,8 +48,7 @@ class MainActivity : AppCompatActivity() {
                 putBoolean("is_enabled_key", enableSwitch.isChecked)
                 apply()
             }
-            // this@MainActivity を指定して Activity の Context を渡す
-            Toast.makeText(this@MainActivity, "設定を保存しました", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "設定を保存しました", Toast.LENGTH_SHORT).show()
         }
 
         requestRoleButton.setOnClickListener {
@@ -50,17 +57,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestCallRedirectionRole() {
-        val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
-        if (roleManager.isRoleAvailable(RoleManager.ROLE_CALL_REDIRECTION)) {
-            if (roleManager.isRoleHeld(RoleManager.ROLE_CALL_REDIRECTION)) {
-                Toast.makeText(this, "既に通話転送アプリとして設定されています", Toast.LENGTH_SHORT).show()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
+            if (roleManager.isRoleAvailable(RoleManager.ROLE_CALL_REDIRECTION)) {
+                if (roleManager.isRoleHeld(RoleManager.ROLE_CALL_REDIRECTION)) {
+                    Toast.makeText(this, "既に通話転送アプリとして設定されています", Toast.LENGTH_SHORT).show()
+                } else {
+                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_REDIRECTION)
+                    roleRequestLauncher.launch(intent)
+                }
             } else {
-                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_REDIRECTION)
-                // Activity のメソッドを直接呼び出す
-                startActivityForResult(intent, REQUEST_CODE_ROLE)
+                Toast.makeText(this, "このデバイスでは通話転送機能が利用できません", Toast.LENGTH_SHORT).show()
             }
         } else {
-            Toast.makeText(this, "このデバイスでは通話転送機能が利用できません", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Android 10以上が必要です", Toast.LENGTH_SHORT).show()
         }
     }
 }

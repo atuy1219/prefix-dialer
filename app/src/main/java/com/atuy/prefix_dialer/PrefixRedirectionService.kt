@@ -1,42 +1,68 @@
 package com.atuy.prefix_dialer
 
+import android.content.Context
 import android.net.Uri
 import android.telecom.CallRedirectionService
 import android.telecom.PhoneAccountHandle
-import android.content.Context
+import android.util.Log
 
 class PrefixRedirectionService : CallRedirectionService() {
+
+    companion object {
+        private const val TAG = "PrefixRedirection"
+    }
 
     override fun onPlaceCall(
         handle: Uri,
         initialPhoneAccount: PhoneAccountHandle,
         allowInteractiveResponse: Boolean
     ) {
-        // 発信しようとしている電話番号を取得 (例: 09012345678)
-        val originalNumber = handle.schemeSpecificPart
+        try {
+            Log.d(TAG, "onPlaceCall: handle=$handle")
 
-        // 設定保存されたプレフィックスを取得
-        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        val prefix = prefs.getString("prefix_key", "") ?: ""
-        val isEnabled = prefs.getBoolean("is_enabled_key", false)
+            // telスキーム以外（sipなど）はそのまま発信させる
+            if (handle.scheme != "tel") {
+                Log.d(TAG, "Not a tel scheme, passing through.")
+                placeCallUnmodified()
+                return
+            }
 
-        // プレフィックスが無効、または空の場合は何もしない
-        if (!isEnabled || prefix.isEmpty()) {
-            placeCallUnmodified()
-            return
-        }
+            // 発信しようとしている電話番号を取得 (例: 09012345678)
+            val originalNumber = handle.schemeSpecificPart
+            Log.d(TAG, "Original number: $originalNumber")
 
-        // 番号書き換えの判定ロジック
-        if (shouldAddPrefix(originalNumber)) {
-            // プレフィックスを付与して発信
-            val newNumber = prefix + originalNumber
-            val newHandle = Uri.fromParts("tel", newNumber, null)
+            // 設定保存されたプレフィックスを取得
+            val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val prefix = prefs.getString("prefix_key", "") ?: ""
+            val isEnabled = prefs.getBoolean("is_enabled_key", false)
 
-            // 書き換えた番号で発信
-            // Java メソッドのため名前付き引数 (confirmFirst =) は使用不可
-            redirectCall(newHandle, initialPhoneAccount, false)
-        } else {
-            // 対象外の番号はそのまま発信
+            Log.d(TAG, "Settings - Enabled: $isEnabled, Prefix: $prefix")
+
+            // プレフィックスが無効、または空の場合は何もしない
+            if (!isEnabled || prefix.isEmpty()) {
+                Log.d(TAG, "Prefix disabled or empty.")
+                placeCallUnmodified()
+                return
+            }
+
+            // 番号書き換えの判定ロジック
+            if (shouldAddPrefix(originalNumber)) {
+                // プレフィックスを付与して発信
+                val newNumber = prefix + originalNumber
+                val newHandle = Uri.fromParts("tel", newNumber, null)
+
+                Log.d(TAG, "Redirecting to: $newNumber")
+
+                // 書き換えた番号で発信
+                // 確認画面を出さずにリダイレクト (confirmFirst = false)
+                redirectCall(newHandle, initialPhoneAccount, false)
+            } else {
+                Log.d(TAG, "No prefix needed.")
+                placeCallUnmodified()
+            }
+        } catch (e: Exception) {
+            // ここでエラーをキャッチしないと、電話発信画面が固まる可能性がある
+            Log.e(TAG, "Error in onPlaceCall", e)
             placeCallUnmodified()
         }
     }

@@ -3,27 +3,33 @@ package com.atuy.prefix_dialer
 import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Context
-import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Switch
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
-    // 推奨される新しいActivity Result APIを使用
+    private lateinit var statusTextView: TextView
+    private lateinit var requestRoleButton: Button
+
+    // Roleリクエスト結果を受け取るランチャー
     private val roleRequestLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            Toast.makeText(this, "通話転送アプリとして設定されました", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "設定されました！", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "設定されませんでした", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "設定がキャンセルされました", Toast.LENGTH_SHORT).show()
         }
+        // 結果がどうであれ画面の状態を更新して確認する
+        updateRoleStatus()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,7 +39,9 @@ class MainActivity : AppCompatActivity() {
         val prefixInput = findViewById<EditText>(R.id.editPrefix)
         val enableSwitch = findViewById<Switch>(R.id.switchEnable)
         val saveButton = findViewById<Button>(R.id.btnSave)
-        val requestRoleButton = findViewById<Button>(R.id.btnRequestRole)
+
+        statusTextView = findViewById(R.id.textStatus)
+        requestRoleButton = findViewById(R.id.btnRequestRole)
 
         val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
@@ -51,8 +59,38 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "設定を保存しました", Toast.LENGTH_SHORT).show()
         }
 
+        // 権限リクエストボタン
         requestRoleButton.setOnClickListener {
             requestCallRedirectionRole()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // アプリに戻ってきたタイミングで常に状態をチェックして表示更新
+        updateRoleStatus()
+    }
+
+    private fun updateRoleStatus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
+            val isHeld = roleManager.isRoleHeld(RoleManager.ROLE_CALL_REDIRECTION)
+
+            if (isHeld) {
+                statusTextView.text = "状態：設定済み (動作可能です)"
+                statusTextView.setTextColor(Color.parseColor("#00AA00")) // 緑色
+                requestRoleButton.isEnabled = false
+                requestRoleButton.text = "設定完了"
+            } else {
+                statusTextView.text = "状態：未設定 (動作しません)"
+                statusTextView.setTextColor(Color.RED)
+                requestRoleButton.isEnabled = true
+                requestRoleButton.text = "通話転送アプリとして設定する"
+            }
+        } else {
+            statusTextView.text = "状態：非対応OS (Android 10以上が必要です)"
+            statusTextView.setTextColor(Color.RED)
+            requestRoleButton.isEnabled = false
         }
     }
 
@@ -60,17 +98,11 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
             if (roleManager.isRoleAvailable(RoleManager.ROLE_CALL_REDIRECTION)) {
-                if (roleManager.isRoleHeld(RoleManager.ROLE_CALL_REDIRECTION)) {
-                    Toast.makeText(this, "既に通話転送アプリとして設定されています", Toast.LENGTH_SHORT).show()
-                } else {
-                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_REDIRECTION)
-                    roleRequestLauncher.launch(intent)
-                }
+                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_REDIRECTION)
+                roleRequestLauncher.launch(intent)
             } else {
-                Toast.makeText(this, "このデバイスでは通話転送機能が利用できません", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "このデバイスでは利用できません", Toast.LENGTH_SHORT).show()
             }
-        } else {
-            Toast.makeText(this, "Android 10以上が必要です", Toast.LENGTH_SHORT).show()
         }
     }
 }

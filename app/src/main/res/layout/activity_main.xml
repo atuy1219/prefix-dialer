@@ -4,13 +4,14 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="24dp"
-    android:gravity="center">
+    android:gravity="center_horizontal">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="プレフィックス設定"
         android:textSize="20sp"
+        android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
 
     <EditText
@@ -24,14 +25,15 @@
         android:id="@+id/switchEnable"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="有効にする"
+        android:text="機能を有効にする"
+        android:layout_gravity="start"
         android:layout_marginTop="16dp"/>
 
     <Button
         android:id="@+id/btnSave"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="保存"
+        android:text="設定を保存"
         android:layout_marginTop="24dp"/>
 
     <View
@@ -43,13 +45,32 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="初期設定"
-        android:layout_marginBottom="8dp"/>
+        android:text="システム権限設定"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- 状態表示用のテキスト -->
+    <TextView
+        android:id="@+id/textStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="状態確認中..."
+        android:textSize="16sp"
+        android:layout_marginBottom="16dp"/>
 
     <Button
         android:id="@+id/btnRequestRole"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="通話転送アプリとして設定する"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="※ここが「設定済み」にならないと動作しません"
+        android:textSize="12sp"
+        android:textColor="#666666"
+        android:layout_marginTop="8dp"/>
 
 </LinearLayout>

@@ -1,4 +1,3 @@
-import java.io.ByteArrayOutputStream
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -19,12 +18,12 @@ fun getGitCommitHash(): String {
 
 fun getGitCommandOutput(command: String): String {
     return try {
-        val byteOut = ByteArrayOutputStream()
-        project.exec {
-            commandLine = command.split(" ")
-            standardOutput = byteOut
-        }
-        byteOut.toString().trim()
+        val parts = command.split(" ")
+        val process = ProcessBuilder(parts)
+            .redirectErrorStream(true)
+            .start()
+
+        process.inputStream.bufferedReader().use { it.readText().trim() }
     } catch (e: Exception) {
         "1.0.0-dev"
     }
@@ -96,12 +95,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
         viewBinding = true
+    }
+}
+
+kotlin {
+    jvmToolchain(11)
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 

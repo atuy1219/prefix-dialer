@@ -19,7 +19,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusTextView: TextView
     private lateinit var requestRoleButton: Button
 
-    // Roleリクエスト結果を受け取るランチャー
     private val roleRequestLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -28,7 +27,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "設定がキャンセルされました", Toast.LENGTH_SHORT).show()
         }
-        // 結果がどうであれ画面の状態を更新して確認する
         updateRoleStatus()
     }
 
@@ -45,11 +43,9 @@ class MainActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
-        // 設定の読み込み
         prefixInput.setText(prefs.getString("prefix_key", ""))
         enableSwitch.isChecked = prefs.getBoolean("is_enabled_key", false)
 
-        // 保存ボタン
         saveButton.setOnClickListener {
             prefs.edit().apply {
                 putString("prefix_key", prefixInput.text.toString())
@@ -59,7 +55,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "設定を保存しました", Toast.LENGTH_SHORT).show()
         }
 
-        // 権限リクエストボタン
         requestRoleButton.setOnClickListener {
             requestCallRedirectionRole()
         }
@@ -67,7 +62,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // アプリに戻ってきたタイミングで常に状態をチェックして表示更新
         updateRoleStatus()
     }
 
@@ -78,7 +72,7 @@ class MainActivity : AppCompatActivity() {
 
             if (isHeld) {
                 statusTextView.text = "状態：設定済み (動作可能です)"
-                statusTextView.setTextColor(Color.parseColor("#00AA00")) // 緑色
+                statusTextView.setTextColor(Color.parseColor("#00AA00"))
                 requestRoleButton.isEnabled = false
                 requestRoleButton.text = "設定完了"
             } else {
